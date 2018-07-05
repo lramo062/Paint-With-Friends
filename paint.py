@@ -1,3 +1,7 @@
+import socket
+import sys
+from _thread import *
+from multiprocessing import Process, Lock
 from tkinter import *
 from tkinter.colorchooser import askcolor
 from PIL import ImageTk
@@ -23,8 +27,8 @@ class Paint(object):
         self.circle_button.grid(row=100, column=6)
 
         # Rectangle Button
-        rectangle_image = ImageTk.PhotoImage(file="rectangle.png")
-        self.rectangle_button = Button(self.root, image=rectangle_image, command=self.use_rectangle)
+        # rectangle_image = ImageTk.PhotoImage(file="rectangle.png")
+        self.rectangle_button = Button(self.root, text="Rectangle", command=self.use_rectangle)
         self.rectangle_button.grid(row=100, column=7)
    
         # Color Button
@@ -68,12 +72,15 @@ class Paint(object):
         self.eraser_on = False
         self.active_button = None
 
+    def start_canvas(self):
+        print('starting canvas')
+        self.root.mainloop()
+
     def use_brush(self):
         self.activate_button(self.brush_button)
         self.c.bind("<ButtonPress-1>", self.on_button_press)
         self.c.bind('<B1-Motion>', self.paint)
         self.c.bind('<ButtonRelease-1>', self.reset)
-
    
     def use_circle(self):
         self.activate_button(self.circle_button)
@@ -87,6 +94,12 @@ class Paint(object):
         self.c.unbind('<B1-Motion>')
         self.c.bind("<ButtonRelease-1>", self.draw_rectangle)
         
+    def use_eraser(self):
+        self.activate_button(self.eraser_button, eraser_mode=True)
+        self.c.bind("<ButtonPress-1>", self.on_button_press)
+        self.c.bind('<B1-Motion>', self.paint)
+        self.c.bind('<ButtonRelease-1>', self.reset)
+        
     def on_button_press(self, event):
         self.x = event.x
         self.y = event.y
@@ -95,9 +108,6 @@ class Paint(object):
         self.eraser_on = False
         # ask color is a built-in color picker tool in tkinter
         self.color = askcolor(color=self.color)[1]
-
-    def use_eraser(self):
-        self.activate_button(self.eraser_button, eraser_mode=True)
 
     def wipe_canvas(self):
         self.c = Canvas(self.root, bg='white', width=600, height=600)
@@ -166,6 +176,6 @@ class Paint(object):
     def print_user_connected(self, text):
         self.text_box.insert(END, text)
 
-if __name__ == '__main__':
-    Paint()
+# if __name__ == '__main__':
+#     Paint()
     
