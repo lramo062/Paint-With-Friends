@@ -1,5 +1,3 @@
-import socket
-import sys
 from _thread import *
 from multiprocessing import Process, Lock
 from tkinter import *
@@ -11,8 +9,9 @@ class Paint(object):
     DEFAULT_PEN_SIZE = 5.0
     DEFAULT_COLOR = 'black'
 
-    def __init__(self):
+    def __init__(self, client):
         self.root = Tk()
+        self.client = client
 
         # Window Title
         self.root.wm_title("Paint with Friends")
@@ -133,12 +132,19 @@ class Paint(object):
         self.line_width = self.choose_size_button.get()
         paint_color = 'white' if self.eraser_on else self.color
         if self.old_x and self.old_y:
-            self.c.create_line(self.old_x, self.old_y, event.x, event.y,
-                               width=self.line_width, fill=paint_color,
-                               capstyle=ROUND, smooth=TRUE, splinesteps=36)
-        self.old_x = event.x
-        self.old_y = event.y
-
+            cordinates = [self.old_x, self.old_y, event.x, event.y]
+            print(cordinates)
+            self.client.send_list(cordinates)
+            data = self.client.receive_list()
+            if data:
+                print(data)
+                self.c.create_line(data[0], data[1], data[2], data[3],
+                                   width=self.line_width, fill=paint_color,
+                                   capstyle=ROUND, smooth=TRUE, splinesteps=36)
+                
+                self.old_x = event.x
+                self.old_y = event.y
+                
     def draw_circle(self, event):
         self.activate_button(self.circle_button)
         self.line_width = self.choose_size_button.get()
