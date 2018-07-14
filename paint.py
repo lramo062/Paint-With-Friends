@@ -131,20 +131,20 @@ class Paint(object):
     def paint(self, event):
         self.line_width = self.choose_size_button.get()
         paint_color = 'white' if self.eraser_on else self.color
-        if self.old_x and self.old_y:
-            cordinates = [self.old_x, self.old_y, event.x, event.y]
-            print(cordinates)
+        if self.x and self.y:
+            data = [self.x, self.y, event.x, event.y]
+            print("data: " + str(data))
+            cordinates = [self.x, self.y, event.x, event.y]
             self.client.send_list(cordinates)
-            data = self.client.receive_list()
-            if data:
-                print(data)
-                self.c.create_line(data[0], data[1], data[2], data[3],
-                                   width=self.line_width, fill=paint_color,
-                                   capstyle=ROUND, smooth=TRUE, splinesteps=36)
-                
-                self.old_x = event.x
-                self.old_y = event.y
-                
+            new_cordinates = self.client.receive_list()
+            print("new cordinates: " + str(new_cordinates))
+            self.c.create_line(data[0], data[1], data[2], data[3],
+                               width=self.line_width, fill=paint_color,
+                            capstyle=ROUND, smooth=TRUE, splinesteps=36)
+            self.x = event.x
+            self.y = event.y
+                            
+
     def draw_circle(self, event):
         self.activate_button(self.circle_button)
         self.line_width = self.choose_size_button.get()
