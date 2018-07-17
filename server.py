@@ -1,9 +1,9 @@
 import socket
 import sys
 import pickle
+import random
 from _thread import *
 from multiprocessing import Process, Lock
-
 
 class Server:
     def __init__(self):
@@ -44,10 +44,20 @@ class Server:
                 self.send_data(data, addr[0], addr[1])
 
     def add_username(self, data, addr):
+        # generate random color for user
+        r = lambda: random.randint(0,255)
+        random_color = str('#%02X%02X%02X' % (r(),r(),r()))
+        
         if not data[0] in self.usernames:
             self.usernames.append(data[0])
+            print("User: " + data[0] + " has joined the canvas with color: " + random_color)
+        
+            # send random color & username for user
+            color_data = [random_color, data[0], 0, 0, "color"]
+            color_data = pickle.dumps(color_data)
+            self.udp_socket.sendto(color_data, (addr[0], addr[1]))
             self.add_connection(addr) # add client to client_list
-            print("User: " + data[0] + " has joined the canvas")
+
         else:
             data = ["ERROR"]
             data = pickle.dumps(data)
@@ -66,15 +76,18 @@ class Server:
             data, addr = self.udp_socket.recvfrom(size)
             cordinates = pickle.loads(data)
             if cordinates[4] == "username":
-                self.add_username(cordinates, addr)
-                    
-            # used for logging information
-            self.history.append(cordinates)
-            print(cordinates)
+                self.add_username(cordinates, addr)    
+            else:
+                print(cordinates)
             
             # broadcast data out to all clients
             for host, port in self.clients:
-                self.send_data(cordinates, host, port)
+                if cordinates[4] == "username":
+                    continue
+                else:
+                     # used for logging information
+                    self.history.append(cordinates)
+                    self.send_data(cordinates, host, port)
 
     def send_data(self, data, host, port, size=4096):
         data = pickle.dumps(data)

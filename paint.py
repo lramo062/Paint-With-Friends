@@ -12,7 +12,7 @@ class Paint(object):
     DEFAULT_COLOR = 'black'
 
     def __init__(self, client):
-
+        self.username = None
         self.client = client
         self.popupmsg("Please enter your username")
         
@@ -36,9 +36,9 @@ class Paint(object):
         self.rectangle_button.grid(row=100, column=7)
    
         # Color Button
-        color_image = ImageTk.PhotoImage(file="color.png")
-        self.color_button = Button(self.root, image=color_image, command=self.choose_color, )
-        self.color_button.grid(row=100, column=2)
+        # color_image = ImageTk.PhotoImage(file="color.png")
+        # self.color_button = Button(self.root, image=color_image, command=self.choose_color, )
+        # self.color_button.grid(row=100, column=2)
 
         # Eraser Button
         eraser_image = ImageTk.PhotoImage(file="eraser.png")
@@ -57,7 +57,7 @@ class Paint(object):
         self.c = Canvas(self.root, bg='white', width=600, height=600)
         self.c.grid(row=0, columnspan=10)
 
-        # Text Dialog Box, will display connected users
+        # Text Dialog Box, will display users' messages
         self.text_box = Text(self.root, height=40, width=30)
         self.text_box.grid(row=0, column=11)
 
@@ -72,22 +72,15 @@ class Paint(object):
         self.root.mainloop()
 
     def setup(self):
+        # destroy window if not connected to server
+        if not self.username:
+            self.root.destroy()
         self.old_x = None
         self.old_y = None
         self.line_width = self.choose_size_button.get()
-        self.color = self.DEFAULT_COLOR
+        # self.color = self.DEFAULT_COLOR
         self.eraser_on = False
         self.active_button = None
-
-        # try:
-        
-            # if not self.client:
-            #     messagebox.showerror("Error", "Please make sure that the server is running...")
-
-    # def popup_bonus(self):
-    #     self.pop_up_window = Toplevel()
-    #     self.pop_up_window.wm_title("Welcome!")
-    #     self.pop_up_window.grid(row=0, column=0)
 
     def popupmsg(self, message):
 
@@ -109,15 +102,25 @@ class Paint(object):
         self.popup.mainloop()
 
     def get_username(self, text_box):
+        # send username to server
         username = text_box.get()
         data = [username, 0, 0, 0, "username", 0, 0]
         self.client.send_data(data)
-        data = self.client.receive_data()
-        if data[0] == "ERROR":
-            self.popup.destroy()
-            self.popupmsg("That username is already taken, please enter a new username")
-        else:
-            self.popup.destroy()
+
+        # check if username is valid and assign color
+        while True:
+            color_data = self.client.receive_data()
+            print(color_data)
+            if color_data[0] == "ERROR":
+                self.popup.destroy()
+                self.popupmsg("That username is already taken, please enter a new username")
+                break
+                
+            elif color_data[4] == "color":
+                self.color = color_data[0]
+                self.username = color_data[1]
+                self.popup.destroy()
+                break
         
     def start_canvas(self):
         print('starting canvas')
@@ -151,10 +154,10 @@ class Paint(object):
         self.x = event.x
         self.y = event.y
         
-    def choose_color(self):
-        self.eraser_on = False
-        # ask color is a built-in color picker tool in tkinter
-        self.color = askcolor(color=self.color)[1]
+    # def choose_color(self):
+    #     self.eraser_on = False
+    #     # ask color is a built-in color picker tool in tkinter
+    #     self.color = askcolor(color=self.color)[1]
 
     def wipe_canvas(self):
         self.client.send_data([0,0,0,0,"wipe_canvas",0,0])
