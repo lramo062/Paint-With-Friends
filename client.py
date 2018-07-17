@@ -5,7 +5,7 @@ import pickle
 
 class Client:
     def __init__(self):
-        self.tcp_socket = None
+        # self.tcp_socket = None
         self.udp_socket = None
         self.host = None
         self.port = None
@@ -19,9 +19,9 @@ class Client:
             self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            
             self.udp_socket.connect((host, port))
 
-            # TCP socket for establishing connection & chat
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
-            self.tcp_socket.connect((host, (port + 1)))
+            # # TCP socket for establishing connection & chat
+            # self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
+            # self.tcp_socket.connect((host, (port + 1)))
             self.isClientConnected = True
             
         except socket.error as errorMessage:
@@ -35,20 +35,19 @@ class Client:
     #         self.udp_socket.close()
     #         self.isClientConnected = False
 
-    def send_list(self, data):
+    def send_data(self, data):
         if self.isClientConnected:            
             list_data = pickle.dumps(data)
             self.udp_socket.sendto(list_data, (self.host,self.port))
 
-    def receive_list(self, size=136):
+    def receive_data(self, size=136):
         if not self.isClientConnected:
             return ""
         else:
-           while True: 
+            while True:
                data, addr = self.udp_socket.recvfrom(size)
                list_data = pickle.loads(data)
                if list_data:
-                   print("Test")
                    print(list_data)
                    return list_data
                else:

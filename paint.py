@@ -61,6 +61,9 @@ class Paint(object):
         self.scroll.grid(row=0, column=12)
         
         self.setup()
+
+        # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!
+        start_new_thread(self.receive_data, ())
         self.root.mainloop()
 
     def setup(self):
@@ -70,7 +73,7 @@ class Paint(object):
         self.color = self.DEFAULT_COLOR
         self.eraser_on = False
         self.active_button = None
-
+        
     def start_canvas(self):
         print('starting canvas')
         self.root.mainloop()
@@ -132,17 +135,18 @@ class Paint(object):
         self.line_width = self.choose_size_button.get()
         paint_color = 'white' if self.eraser_on else self.color
         if self.x and self.y:
-            data = [self.x, self.y, event.x, event.y]
-            self.client.send_list(data)
+            # send data to server
+            data = [self.x, self.y, event.x, event.y,
+                    "paint", paint_color, self.line_width]
+            self.client.send_data(data)
+
+            # paint on canvas
             self.c.create_line(data[0], data[1], data[2], data[3],
                                width=self.line_width, fill=paint_color,
                             capstyle=ROUND, smooth=TRUE, splinesteps=36)
-            start_new_thread(self.receive_data, ('paint',))
             self.x = event.x
             self.y = event.y
             
-                            
-
     def draw_circle(self, event):
         self.activate_button(self.circle_button)
         self.line_width = self.choose_size_button.get()
@@ -152,6 +156,12 @@ class Paint(object):
         self.old_x, self.old_y = (self.x, self.y)
         self.x, self.y = (event.x, event.y)
 
+        # send data to server
+        data = [self.old_x, self.old_y, self.x, self.y,
+                "draw_circle", paint_color, self.line_width]
+        self.client.send_data(data)
+
+        # paint on canvas
         if self.old_x and self.old_y:
             self.c.create_oval(self.old_x, self.old_y, self.x, self.y, outline=paint_color,
                                width=self.line_width)
@@ -167,7 +177,12 @@ class Paint(object):
         # set dimensions for circle
         self.old_x, self.old_y = (self.x, self.y)
         self.x, self.y = (event.x, event.y)
-        
+
+        # send data to server
+        data = [self.old_x, self.old_y, self.x, self.y,
+                "draw_rectangle", paint_color, self.line_width]
+        self.client.send_data(data)
+
         if self.old_x and self.old_y:
             self.c.create_rectangle(self.old_x, self.old_y, self.x, self.y, outline=paint_color,
                                width=self.line_width)
@@ -179,21 +194,23 @@ class Paint(object):
 
     def print_user_connected(self, text):
         self.text_box.insert(END, text)
-
-    def receive_data(self, data_type):
-        cordinates = self.client.receive_list()
-        # if data_type == 'paint':
-        #     self.c.create_line(cordinates[0], cordinates[1], cordinates[2], cordinates[3],
-        #                        width=self.line_width, fill=paint_color,
-        #                        capstyle=ROUND, smooth=TRUE, splinesteps=36)
-        # elif data_type == 'draw_rectangle':
-        #     self.c.create_rectangle(cordinates[0], cordinates[1], cordinates[2],
-        #                             cordinates[3], outline=paint_color,
-        #                             width=self.line_width)
-        # elif data_type == 'draw_circle':
-        #     self.c.create_oval(cordinates[0], cordinates[1], cordinates[2],
-        #                        cordinates[3], outline=paint_color,
-        #                        width=self.line_width)
+        
+    def receive_data(self):
+        while True:
+            paint_color = 'white' if self.eraser_on else self.color
+            cordinates = self.client.receive_data()
+            if cordinates[4] == 'paint':
+                self.c.create_line(cordinates[0], cordinates[1], cordinates[2], cordinates[3],
+                                   width=cordinates[6], fill=cordinates[5],
+                                   capstyle=ROUND, smooth=TRUE, splinesteps=36)
+            elif cordinates[4] == 'draw_rectangle':
+                self.c.create_rectangle(cordinates[0], cordinates[1], cordinates[2],
+                                        cordinates[3], outline=cordinates[5],
+                                        width=cordinates[6])
+            elif cordinates[4] == 'draw_circle':
+                self.c.create_oval(cordinates[0], cordinates[1], cordinates[2],
+                                   cordinates[3], outline=cordinates[5],
+                                   width=cordinates[6])
 
 # if __name__ == '__main__':
 #     Paint()
