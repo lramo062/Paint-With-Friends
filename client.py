@@ -64,7 +64,7 @@ class Client:
     #     return self.socket.recv(size).decode('utf8')
 
 client = Client()
-client.connect('localhost', 10000)
+client.connect('127.0.0.1', 10000)
 if client.isClientConnected:
     paint = paint.Paint(client)
 else:

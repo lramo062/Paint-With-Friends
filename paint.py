@@ -3,6 +3,7 @@ from multiprocessing import Process, Lock
 from tkinter import *
 from tkinter.colorchooser import askcolor
 from tkinter import messagebox
+from tkinter import ttk
 from PIL import ImageTk
 
 class Paint(object):
@@ -11,9 +12,12 @@ class Paint(object):
     DEFAULT_COLOR = 'black'
 
     def __init__(self, client):
-        self.root = Tk()
-        self.client = client
 
+        self.client = client
+        self.popupmsg("Please enter your username")
+        
+        self.root = Tk()
+    
         # Window Title
         self.root.wm_title("Paint with Friends")
 
@@ -60,9 +64,9 @@ class Paint(object):
         # Scroll Bar for Text Box
         self.scroll = Scrollbar(self.root, command=self.text_box.yview)
         self.scroll.grid(row=0, column=12)
-        
-        self.setup()
 
+        self.setup()
+        
         # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!
         start_new_thread(self.receive_data, ())
         self.root.mainloop()
@@ -74,11 +78,46 @@ class Paint(object):
         self.color = self.DEFAULT_COLOR
         self.eraser_on = False
         self.active_button = None
+
         # try:
-        messagebox.showinfo("Information","Informative message")
         
             # if not self.client:
             #     messagebox.showerror("Error", "Please make sure that the server is running...")
+
+    # def popup_bonus(self):
+    #     self.pop_up_window = Toplevel()
+    #     self.pop_up_window.wm_title("Welcome!")
+    #     self.pop_up_window.grid(row=0, column=0)
+
+    def popupmsg(self, message):
+
+        self.popup = Tk()
+        self.popup.wm_title("Welcome to Paint-With-Friends!")
+        self.popup.geometry("500x75")
+        
+        label = ttk.Label(self.popup, text=message)
+        label.place(x=25, y=25, anchor="center")
+        label.pack()
+
+        text_box = Entry(self.popup)
+        text_box.place(x=25, y=50, anchor="center")
+        text_box.pack()
+
+        enter_button = ttk.Button(self.popup, text="Enter", command=lambda: self.get_username(text_box))
+        enter_button.pack()
+        
+        self.popup.mainloop()
+
+    def get_username(self, text_box):
+        username = text_box.get()
+        data = [username, 0, 0, 0, "username", 0, 0]
+        self.client.send_data(data)
+        data = self.client.receive_data()
+        if data[0] == "ERROR":
+            self.popup.destroy()
+            self.popupmsg("That username is already taken, please enter a new username")
+        else:
+            self.popup.destroy()
         
     def start_canvas(self):
         print('starting canvas')
