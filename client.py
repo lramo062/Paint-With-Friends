@@ -40,7 +40,7 @@ class Client:
             list_data = pickle.dumps(data)
             self.udp_socket.sendto(list_data, (self.host,self.port))
 
-    def receive_data(self, size=136):
+    def receive_data(self, size=4096):
         if not self.isClientConnected:
             return ""
         else:
