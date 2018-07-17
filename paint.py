@@ -2,6 +2,7 @@ from _thread import *
 from multiprocessing import Process, Lock
 from tkinter import *
 from tkinter.colorchooser import askcolor
+from tkinter import messagebox
 from PIL import ImageTk
 
 class Paint(object):
@@ -73,6 +74,11 @@ class Paint(object):
         self.color = self.DEFAULT_COLOR
         self.eraser_on = False
         self.active_button = None
+        # try:
+        messagebox.showinfo("Information","Informative message")
+        
+            # if not self.client:
+            #     messagebox.showerror("Error", "Please make sure that the server is running...")
         
     def start_canvas(self):
         print('starting canvas')
@@ -112,6 +118,7 @@ class Paint(object):
         self.color = askcolor(color=self.color)[1]
 
     def wipe_canvas(self):
+        self.client.send_data([0,0,0,0,"wipe_canvas",0,0])
         self.c = Canvas(self.root, bg='white', width=600, height=600)
         self.c.grid(row=0, columnspan=10)
         self.setup()
@@ -211,6 +218,10 @@ class Paint(object):
                 self.c.create_oval(cordinates[0], cordinates[1], cordinates[2],
                                    cordinates[3], outline=cordinates[5],
                                    width=cordinates[6])
+            elif cordinates[4] == 'wipe_canvas':
+                self.c = Canvas(self.root, bg='white', width=600, height=600)
+                self.c.grid(row=0, columnspan=10)
+                self.setup()
 
 # if __name__ == '__main__':
 #     Paint()
