@@ -133,16 +133,14 @@ class Paint(object):
         paint_color = 'white' if self.eraser_on else self.color
         if self.x and self.y:
             data = [self.x, self.y, event.x, event.y]
-            print("data: " + str(data))
-            cordinates = [self.x, self.y, event.x, event.y]
-            self.client.send_list(cordinates)
-            new_cordinates = self.client.receive_list()
-            print("new cordinates: " + str(new_cordinates))
+            self.client.send_list(data)
             self.c.create_line(data[0], data[1], data[2], data[3],
                                width=self.line_width, fill=paint_color,
                             capstyle=ROUND, smooth=TRUE, splinesteps=36)
+            start_new_thread(self.receive_data, ('paint',))
             self.x = event.x
             self.y = event.y
+            
                             
 
     def draw_circle(self, event):
@@ -181,6 +179,21 @@ class Paint(object):
 
     def print_user_connected(self, text):
         self.text_box.insert(END, text)
+
+    def receive_data(self, data_type):
+        cordinates = self.client.receive_list()
+        # if data_type == 'paint':
+        #     self.c.create_line(cordinates[0], cordinates[1], cordinates[2], cordinates[3],
+        #                        width=self.line_width, fill=paint_color,
+        #                        capstyle=ROUND, smooth=TRUE, splinesteps=36)
+        # elif data_type == 'draw_rectangle':
+        #     self.c.create_rectangle(cordinates[0], cordinates[1], cordinates[2],
+        #                             cordinates[3], outline=paint_color,
+        #                             width=self.line_width)
+        # elif data_type == 'draw_circle':
+        #     self.c.create_oval(cordinates[0], cordinates[1], cordinates[2],
+        #                        cordinates[3], outline=paint_color,
+        #                        width=self.line_width)
 
 # if __name__ == '__main__':
 #     Paint()

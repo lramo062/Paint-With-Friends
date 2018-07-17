@@ -5,7 +5,8 @@ import pickle
 
 class Client:
     def __init__(self):
-        self.socket = None
+        self.tcp_socket = None
+        self.udp_socket = None
         self.host = None
         self.port = None
         self.isClientConnected = False
@@ -14,10 +15,15 @@ class Client:
         self.host = host
         self.port = port
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            # self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            # self.socket.connect((host, port))
+            # UDP socket for sending/receiving drawing data
+            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            
+            self.udp_socket.connect((host, port))
+
+            # TCP socket for establishing connection & chat
+            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)         # Create a socket object
+            self.tcp_socket.connect((host, (port + 1)))
             self.isClientConnected = True
+            
         except socket.error as errorMessage:
             if errorMessage.errno == socket.errno.ECONNREFUSED:
                 sys.stderr.write('Connection refused to {0} on port {1}'.format(host, port))
@@ -26,14 +32,28 @@ class Client:
 
     # def disconnect(self):
     #     if self.isClientConnected:
-    #         self.socket.close()
+    #         self.udp_socket.close()
     #         self.isClientConnected = False
 
     def send_list(self, data):
         if self.isClientConnected:            
             list_data = pickle.dumps(data)
-            self.socket.sendto(list_data, (self.host,self.port))
+            self.udp_socket.sendto(list_data, (self.host,self.port))
 
+    def receive_list(self, size=136):
+        if not self.isClientConnected:
+            return ""
+        else:
+           while True: 
+               data, addr = self.udp_socket.recvfrom(size)
+               list_data = pickle.loads(data)
+               if list_data:
+                   print("Test")
+                   print(list_data)
+                   return list_data
+               else:
+                   return ""
+            
     # def send(self, data):
     #     if self.isClientConnected:
     #         self.socket.send(data.encode())
@@ -43,17 +63,6 @@ class Client:
     #     if not self.isClientConnected:
     #         return ""
     #     return self.socket.recv(size).decode('utf8')
-
-    def receive_list(self, size=4096):
-        if not self.isClientConnected:
-            return ""
-        else:
-            data, addr = self.socket.recvfrom(size)
-            list_data = pickle.loads(data)
-            if list_data:
-                return list_data
-            else:
-                return ""
 
 client = Client()
 client.connect('localhost', 10000)
