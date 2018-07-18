@@ -12,10 +12,10 @@ class Paint(object):
     DEFAULT_COLOR = 'black'
 
     def __init__(self, client):
+
         self.username = None
         self.client = client
-        self.popupmsg("Please enter your username")
-        
+        self.popup_msg("Please enter your username")
         self.root = Tk()
     
         # Window Title
@@ -58,8 +58,16 @@ class Paint(object):
         self.c.grid(row=0, columnspan=10)
 
         # Text Dialog Box, will display users' messages
-        self.text_box = Text(self.root, height=40, width=30)
-        self.text_box.grid(row=0, column=11)
+        self.text_box = Text(self.root, state='disabled', height=40, width=65)
+        self.text_box.grid(row=0, column=10)
+
+        # User chat entry box
+        self.send_box = Entry(self.root)
+        self.send_box.grid(row=100, column=10)
+
+        # User send button
+        self.send_button = Button(self.root, text="send", command=self.send_chat)
+        self.send_button.grid(row=100, column=11)
 
         # Scroll Bar for Text Box
         self.scroll = Scrollbar(self.root, command=self.text_box.yview)
@@ -68,6 +76,8 @@ class Paint(object):
         self.setup()
         
         # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!
+        start_new_thread(self.receive_data, ())
+        start_new_thread(self.receive_data, ())
         start_new_thread(self.receive_data, ())
         self.root.mainloop()
 
@@ -82,7 +92,7 @@ class Paint(object):
         self.eraser_on = False
         self.active_button = None
 
-    def popupmsg(self, message):
+    def popup_msg(self, message):
 
         self.popup = Tk()
         self.popup.wm_title("Welcome to Paint-With-Friends!")
@@ -101,31 +111,47 @@ class Paint(object):
         
         self.popup.mainloop()
 
+    def popup_error_msg(self, message):
+        self.popup = Tk()
+        self.popup.wm_title("Welcome to Paint-With-Friends!")
+        self.popup.geometry("500x75")
+        
+        label = ttk.Label(self.popup, text=message)
+        label.place(x=25, y=25, anchor="center")
+        label.pack()
+
+        enter_button = ttk.Button(self.popup, text="OK", command=lambda: self.popup.destroy())
+        enter_button.pack()
+        
+        self.popup.mainloop()
+
+        
+        
     def get_username(self, text_box):
         # send username to server
         username = text_box.get()
         data = [username, 0, 0, 0, "username", 0, 0]
-        self.client.send_data(data)
-
-        # check if username is valid and assign color
-        while True:
-            color_data = self.client.receive_data()
-            print(color_data)
-            if color_data[0] == "ERROR":
-                self.popup.destroy()
-                self.popupmsg("That username is already taken, please enter a new username")
-                break
+        try:
+            self.client.send_data(data)
+            # check if username is valid and assign color
+            while True:
+                color_data = self.client.receive_data()
+                if color_data[0] == "ERROR":
+                    self.popup.destroy()
+                    self.popup_msg("That username is already taken, please enter a new username")
+                    break
                 
-            elif color_data[4] == "color":
-                self.color = color_data[0]
-                self.username = color_data[1]
-                self.popup.destroy()
-                break
-        
-    def start_canvas(self):
-        print('starting canvas')
-        self.root.mainloop()
+                elif color_data[4] == "color":
+                    self.color = color_data[0]
+                    self.username = color_data[1]
+                    self.popup.destroy()
+                    break                
+        except:
+            # destroy previous popup prompting for username
+            self.popup.destroy()
+            self.popup_error_msg("Connection to server is not established, please make sure server is running")
 
+        
     def use_brush(self):
         self.activate_button(self.brush_button)
         self.c.bind("<ButtonPress-1>", self.on_button_press)
@@ -153,7 +179,14 @@ class Paint(object):
     def on_button_press(self, event):
         self.x = event.x
         self.y = event.y
+
+    def send_chat(self):
+        text = self.send_box.get()
+        text_data = [text, self.username, 0, 0, "chat"]
+        self.client.send_data(text_data)
+        self.send_box.delete(0, 'end')
         
+    # not using this function because server chooses random color for user    
     # def choose_color(self):
     #     self.eraser_on = False
     #     # ask color is a built-in color picker tool in tkinter
@@ -217,7 +250,6 @@ class Paint(object):
         self.old_x = None
         self.old_y = None
 
-
     def draw_rectangle(self, event):
         self.activate_button(self.rectangle_button)
         self.line_width = self.choose_size_button.get()
@@ -240,9 +272,6 @@ class Paint(object):
             
     def reset(self, event):
         self.old_x, self.old_y = None, None
-
-    def print_user_connected(self, text):
-        self.text_box.insert(END, text)
         
     def receive_data(self):
         while True:
@@ -264,7 +293,13 @@ class Paint(object):
                 self.c = Canvas(self.root, bg='white', width=600, height=600)
                 self.c.grid(row=0, columnspan=10)
                 self.setup()
+            elif cordinates[4] == 'chat':
+                print(cordinates)
+                text = str(cordinates[1] + ": " + cordinates[0] + "\n")
+                self.text_box.configure(state='normal')
+                self.text_box.insert(END, text)
+                self.text_box.configure(state='disabled')
+                
 
 # if __name__ == '__main__':
 #     Paint()
-    
