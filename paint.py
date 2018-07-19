@@ -12,8 +12,9 @@ class Paint(object):
     DEFAULT_COLOR = 'black'
 
     def __init__(self, client):
-
         self.username = None
+        self.join_message = None
+        self.color = None
         self.client = client
         self.popup_msg("Please enter your username")
         self.root = Tk()
@@ -60,6 +61,9 @@ class Paint(object):
         # Text Dialog Box, will display users' messages
         self.text_box = Text(self.root, state='disabled', height=40, width=65)
         self.text_box.grid(row=0, column=10)
+        self.text_box.configure(state='normal')
+        self.text_box.insert(END, self.join_message)
+        self.text_box.configure(state='disabled')
 
         # User chat entry box
         self.send_box = Entry(self.root)
@@ -75,7 +79,7 @@ class Paint(object):
 
         self.setup()
         
-        # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!
+        # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!          
         start_new_thread(self.receive_data, ())
         start_new_thread(self.receive_data, ())
         start_new_thread(self.receive_data, ())
@@ -125,8 +129,6 @@ class Paint(object):
         
         self.popup.mainloop()
 
-        
-        
     def get_username(self, text_box):
         # send username to server
         username = text_box.get()
@@ -138,12 +140,13 @@ class Paint(object):
                 color_data = self.client.receive_data()
                 if color_data[0] == "ERROR":
                     self.popup.destroy()
-                    self.popup_msg("That username is already taken, please enter a new username")
+                    self.popup_msg("That username is already taken or is invalid, please enter a new username")
                     break
                 
-                elif color_data[4] == "color":
-                    self.color = color_data[0]
-                    self.username = color_data[1]
+                elif color_data[4] == "join":
+                    self.color = color_data[2]
+                    self.username = color_data[3]
+                    self.join_message = color_data[0]
                     self.popup.destroy()
                     break                
         except:
@@ -294,12 +297,12 @@ class Paint(object):
                 self.c.grid(row=0, columnspan=10)
                 self.setup()
             elif cordinates[4] == 'chat':
-                print(cordinates)
                 text = str(cordinates[1] + ": " + cordinates[0] + "\n")
                 self.text_box.configure(state='normal')
                 self.text_box.insert(END, text)
                 self.text_box.configure(state='disabled')
-                
-
-# if __name__ == '__main__':
-#     Paint()
+            elif cordinates[4] == 'join_chat':
+                self.text_box.configure(state='normal')
+                self.text_box.insert(END, cordinates[0])
+                self.text_box.configure(state='disabled')
+ 

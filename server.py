@@ -32,11 +32,6 @@ class Server:
     def add_connection(self, addr):
         if not (addr[0], addr[1]) in self.clients:
             self.clients.append((addr[0], addr[1]))
-            print('Connected with ' + addr[0] + ':' + str(addr[1]))
-            
-            # sending draw history to new client
-            for data in self.history:
-                self.send_data(data, addr[0], addr[1])
 
     def add_username(self, data, addr):
         username = data[0]
@@ -45,42 +40,45 @@ class Server:
         r = lambda: random.randint(0,255)
         random_color = str('#%02X%02X%02X' % (r(),r(),r()))
         
-        if not username in self.usernames:
+        if not username == "" and not username in self.usernames:
             self.usernames.append(username)
-            chat_message = "User " + username + " has joined the canvas with color: " + random_color
-
-            # send chat information
-            print(chat_message)
-            self.history.append([chat_message, "server", 0, 0, "chat"])
-            
-            # send random color & username for user
-            color_data = [random_color, username, 0, 0, "color"]
-            start_new_thread(self.send_data, (color_data, addr[0], addr[1],))
-            start_new_thread(self.add_connection, (addr,))  # add client to client_list
-
+            join_message = ["User " + username + " has joined the canvas with color: " + random_color + "\n",
+                            "server", random_color, username, "join"]
+            return join_message
         else:
-            data = ["ERROR"]
-            data = pickle.dumps(data)
-            self.udp_socket.sendto(data, (addr[0], addr[1]))
+            # send error message to client, username may be taken
+            self.send_data(["ERROR"], addr[0], addr[1])
+            return (None, None)
                         
     def accept_data(self, size=4096):
         while True:
-            # Receiving mouse data from client
+            # Receive data from client
             data, addr = self.udp_socket.recvfrom(size)
-            cordinates = pickle.loads(data)
-            if cordinates[4] == "username":
-                start_new_thread(self.add_username, (cordinates, addr,))
+            client_data = pickle.loads(data)
+
+            # check if this client is trying to be added to our client list
+            if client_data[4] == "username":
+                # start_new_thread(self.add_username, (client_data, addr,))
+                join_message = self.add_username(client_data, addr)
+                if join_message:
+                    self.history.append([join_message[0], 0, 0, 0, "join_chat"])
+                    print(join_message[0]) # logging new client connected
+                    # add the new client to our client list
+                    # and send them the history of all data
+                    start_new_thread(self.add_connection, (addr,))
+                    self.mutex.acquire()
+                    start_new_thread(self.send_data, (join_message, addr[0], addr[1],))
+                    self.mutex.release()
+                    start_new_thread(self.send_data, (self.history, addr[0], addr[1],))
+                    
             else:
-                print(cordinates)
-            
-            # broadcast data out to all clients
-            for host, port in self.clients:
-                if cordinates[4] == "username":
-                    continue
-                else:
-                     # used for logging information
-                    self.history.append(cordinates)
-                    start_new_thread(self.send_data, (cordinates, host, port,))
+                print(client_data)
+                # broadcast data out to all clients
+                for host, port in self.clients:
+                    # used for logging information
+                    self.history.append(client_data)
+                    if not (host, port) == (addr[0], addr[1]):
+                        start_new_thread(self.send_data, (client_data, host, port,))
 
     def send_data(self, data, host, port, size=4096):
         data = pickle.dumps(data)
@@ -90,4 +88,3 @@ if __name__ == '__main__':
     server = Server()
     server.bind()
     server.accept_data()
-
