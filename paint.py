@@ -132,7 +132,7 @@ class Paint(object):
     def get_username(self, text_box):
         # send username to server
         username = text_box.get()
-        data = [username, 0, 0, 0, "username", 0, 0]
+        data = ["username", username]
         try:
             self.client.send_data(data)
             # check if username is valid and assign color
@@ -143,10 +143,10 @@ class Paint(object):
                     self.popup_msg("That username is already taken or is invalid, please enter a new username")
                     break
                 
-                elif color_data[4] == "join":
-                    self.color = color_data[2]
-                    self.username = color_data[3]
-                    self.join_message = color_data[0]
+                elif color_data[0] == "join":
+                    self.color = color_data[3]
+                    self.username = color_data[4]
+                    self.join_message = color_data[1]
                     self.popup.destroy()
                     break                
         except:
@@ -185,7 +185,7 @@ class Paint(object):
 
     def send_chat(self):
         text = self.send_box.get()
-        text_data = [text, self.username, 0, 0, "chat"]
+        text_data = ["chat", text, self.username]
         self.client.send_data(text_data)
         self.send_box.delete(0, 'end')
         
@@ -196,7 +196,7 @@ class Paint(object):
     #     self.color = askcolor(color=self.color)[1]
 
     def wipe_canvas(self):
-        self.client.send_data([0,0,0,0,"wipe_canvas",0,0])
+        self.client.send_data(["wipe_canvas"])
         self.c = Canvas(self.root, bg='white', width=600, height=600)
         self.c.grid(row=0, columnspan=10)
         self.setup()
@@ -221,12 +221,11 @@ class Paint(object):
         paint_color = 'white' if self.eraser_on else self.color
         if self.x and self.y:
             # send data to server
-            data = [self.x, self.y, event.x, event.y,
-                    "paint", paint_color, self.line_width]
+            data = ["paint", self.x, self.y, event.x, event.y, paint_color, self.line_width]
             self.client.send_data(data)
 
             # paint on canvas
-            self.c.create_line(data[0], data[1], data[2], data[3],
+            self.c.create_line(data[1], data[2], data[3], data[4],
                                width=self.line_width, fill=paint_color,
                             capstyle=ROUND, smooth=TRUE, splinesteps=36)
             self.x = event.x
@@ -242,8 +241,7 @@ class Paint(object):
         self.x, self.y = (event.x, event.y)
 
         # send data to server
-        data = [self.old_x, self.old_y, self.x, self.y,
-                "draw_circle", paint_color, self.line_width]
+        data = ["draw_circle", self.old_x, self.old_y, self.x, self.y, paint_color, self.line_width]
         self.client.send_data(data)
 
         # paint on canvas
@@ -263,8 +261,7 @@ class Paint(object):
         self.x, self.y = (event.x, event.y)
 
         # send data to server
-        data = [self.old_x, self.old_y, self.x, self.y,
-                "draw_rectangle", paint_color, self.line_width]
+        data = ["draw_rectangle", self.old_x, self.old_y, self.x, self.y, paint_color, self.line_width]
         self.client.send_data(data)
 
         if self.old_x and self.old_y:
@@ -279,30 +276,26 @@ class Paint(object):
     def receive_data(self):
         while True:
             paint_color = 'white' if self.eraser_on else self.color
-            cordinates = self.client.receive_data()
-            if cordinates[4] == 'paint':
-                self.c.create_line(cordinates[0], cordinates[1], cordinates[2], cordinates[3],
-                                   width=cordinates[6], fill=cordinates[5],
+            data = self.client.receive_data()
+            print(data)
+            if data[0] == 'paint':
+                self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
                                    capstyle=ROUND, smooth=TRUE, splinesteps=36)
-            elif cordinates[4] == 'draw_rectangle':
-                self.c.create_rectangle(cordinates[0], cordinates[1], cordinates[2],
-                                        cordinates[3], outline=cordinates[5],
-                                        width=cordinates[6])
-            elif cordinates[4] == 'draw_circle':
-                self.c.create_oval(cordinates[0], cordinates[1], cordinates[2],
-                                   cordinates[3], outline=cordinates[5],
-                                   width=cordinates[6])
-            elif cordinates[4] == 'wipe_canvas':
+            elif data[0] == 'draw_rectangle':
+                self.c.create_rectangle(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
+            elif data[0] == 'draw_circle':
+                self.c.create_oval(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
+            elif data[0] == 'wipe_canvas':
                 self.c = Canvas(self.root, bg='white', width=600, height=600)
                 self.c.grid(row=0, columnspan=10)
                 self.setup()
-            elif cordinates[4] == 'chat':
-                text = str(cordinates[1] + ": " + cordinates[0] + "\n")
+            elif data[0] == 'chat':
+                text = str(data[2] + ": " + data[1] + "\n")
                 self.text_box.configure(state='normal')
                 self.text_box.insert(END, text)
                 self.text_box.configure(state='disabled')
-            elif cordinates[4] == 'join_chat':
+            elif data[0] == 'join_chat':
                 self.text_box.configure(state='normal')
-                self.text_box.insert(END, cordinates[0])
+                self.text_box.insert(END, data[1])
                 self.text_box.configure(state='disabled')
  

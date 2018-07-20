@@ -43,7 +43,6 @@ class Client:
                data, addr = self.udp_socket.recvfrom(size)
                list_data = pickle.loads(data)
                if list_data:
-                   print(list_data)
                    return list_data
                else:
                    return ""

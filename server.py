@@ -14,6 +14,7 @@ class Server:
         self.usernames = []
         self.mutex = Lock()
         self.history = []
+        self.chat_history = []
         
     def disconnect(self):
         self.socket.close()
@@ -29,26 +30,23 @@ class Server:
             print ('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
             sys.exit()
 
-    def add_connection(self, addr):
-        if not (addr[0], addr[1]) in self.clients:
+    def add_connection(self, data, addr):
+        username = data[1]
+        if not (addr[0], addr[1]) in self.clients and not username in self.usernames and not username == "":
             self.clients.append((addr[0], addr[1]))
-
-    def add_username(self, data, addr):
-        username = data[0]
-
-        # generate random color for user
-        r = lambda: random.randint(0,255)
-        random_color = str('#%02X%02X%02X' % (r(),r(),r()))
-        
-        if not username == "" and not username in self.usernames:
             self.usernames.append(username)
-            join_message = ["User " + username + " has joined the canvas with color: " + random_color + "\n",
-                            "server", random_color, username, "join"]
+            
+            # generate random color for user
+            r = lambda: random.randint(0,255)
+            random_color = str('#%02X%02X%02X' % (r(),r(),r()))
+            join_message = ["join", "User " + username + " has joined the canvas with color: " + random_color + "\n",
+                            "server", random_color, username]
             return join_message
         else:
             # send error message to client, username may be taken
             self.send_data(["ERROR"], addr[0], addr[1])
-            return (None, None)
+            return None
+     
                         
     def accept_data(self, size=4096):
         while True:
@@ -57,19 +55,18 @@ class Server:
             client_data = pickle.loads(data)
 
             # check if this client is trying to be added to our client list
-            if client_data[4] == "username":
+            if client_data[0] == "username":
                 # start_new_thread(self.add_username, (client_data, addr,))
-                join_message = self.add_username(client_data, addr)
+                join_message = self.add_connection(client_data, addr)
                 if join_message:
-                    self.history.append([join_message[0], 0, 0, 0, "join_chat"])
-                    print(join_message[0]) # logging new client connected
-                    # add the new client to our client list
-                    # and send them the history of all data
-                    start_new_thread(self.add_connection, (addr,))
-                    self.mutex.acquire()
-                    start_new_thread(self.send_data, (join_message, addr[0], addr[1],))
-                    self.mutex.release()
-                    start_new_thread(self.send_data, (self.history, addr[0], addr[1],))
+                    self.chat_history.append(["joing_chat", join_message[1]])
+                    print(join_message[1]) # logging new client connected
+                    self.send_data(join_message, addr[0], addr[1])
+
+                    # send paint & chat history if there are older clients
+                    if len(self.clients) > 1:
+                        self.send_paint_history(addr[0], addr[1])
+                        self.send_chat_history(addr[0], addr[1])
                     
             else:
                 print(client_data)
@@ -83,6 +80,16 @@ class Server:
     def send_data(self, data, host, port, size=4096):
         data = pickle.dumps(data)
         self.udp_socket.sendto(data, (host, port))
+
+    def send_paint_history(self, host, port, size=4096):
+        for history in self.history:
+            data = pickle.dumps(history)
+            self.udp_socket.sendto(data, (host, port))
+
+    def send_chat_history(self, host, port, size=4096):
+        for chats in self.chat_history:
+            data = pickle.dumps(chats)
+            self.udp_socket.sendto(data, (host, port))
 
 if __name__ == '__main__':
     server = Server()
