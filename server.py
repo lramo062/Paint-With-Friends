@@ -8,8 +8,10 @@ from multiprocessing import Process, Lock
 class Server:
     def __init__(self):
         self.HOST = 'localhost'
-        self.PORT = 10000
-        self.socket = None
+        self.UDP_PORT = 10000
+        self.TCP_PORT = 10001
+        self.udp_socket = None
+        self.tcp_socket = None
         self.clients = []
         self.usernames = []
         self.mutex = Lock()
@@ -22,10 +24,12 @@ class Server:
     def bind(self):
         # UDP socket for sending/receiving drawing data
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Bind socket to local host and port, print if fails
         try:
-            self.udp_socket.bind((self.HOST, self.PORT))
+            self.udp_socket.bind((self.HOST, self.UDP_PORT))
+            self.tcp_socket.bind((self.HOST, self.TCP_PORT))
+            self.tcp_socket.listen()
         except socket.error as msg:
             print ('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
             sys.exit()
@@ -53,7 +57,7 @@ class Server:
      
                         
     def accept_data(self, size=4096):
-        while True:
+        while True:             
             # Receive data from client
             data, addr = self.udp_socket.recvfrom(size)
             client_data = pickle.loads(data)
@@ -62,16 +66,18 @@ class Server:
             # check if this client is trying to be added to our client list
             if client_data[0] == "username":
                 join_message = self.add_connection(client_data, addr)
+                conn, addr = self.tcp_socket.accept()
+                if len(self.clients) > 1:
+                    start_new_thread(self.send_paint_history, (conn,))
                 if join_message:
                     for host, port in self.clients:
                         if not (host, port) == (addr[0], addr[1]):
                             self.send_data(join_message, host, port)
                     self.chat_history.append(["join_chat", join_message[1], join_message[4]])
                   
-                # send paint & chat history if there are older clients
-                if len(self.clients) > 1:
-                    self.send_paint_history(addr[0], addr[1])
-                    start_new_thread(self.send_chat_history, (addr[0], addr[1],))
+                    # send paint & chat history if there are older clients              
+                    # self.send_paint_history(addr[0], addr[1])
+                    # start_new_thread(self.send_chat_history, (addr[0], addr[1],))
                     
             else:
                 self.history.append(client_data)
@@ -84,13 +90,10 @@ class Server:
         data = pickle.dumps(data)
         self.udp_socket.sendto(data, (host, port))
 
-    def send_paint_history(self, host, port, size=4096):
-        i = 0
+    def send_paint_history(self, conn, size=4096):
         for history in self.history:
-            print(str(i) + ": " + "sending: " + str(history))
             data = pickle.dumps(history)
-            self.udp_socket.sendto(data, (host, port))
-            i = i + 1
+            conn.send(data)
 
     def send_chat_history(self, host, port, size=4096):
         for chats in self.chat_history:

@@ -17,6 +17,9 @@ class Client:
             # UDP socket for sending/receiving drawing data
             self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            
             self.udp_socket.connect((host, port))
+
+            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tcp_socket.connect((host, port+1))
             self.isClientConnected = True
             
         except socket.error as errorMessage:
@@ -47,6 +50,20 @@ class Client:
                    return list_data
                else:
                    return ""
+               
+    def receive_tcp_data(self, size=4096):
+        if not self.isClientConnected:
+            return ""
+        else:
+            data = self.tcp_socket.recv(size)
+            print(data)
+            if data:
+                list_data = pickle.loads(data)
+                if list_data:
+                    print(list_data)
+                    return list_data
+                else:
+                    return ""
 
 if __name__ == '__main__':
     client = Client()
