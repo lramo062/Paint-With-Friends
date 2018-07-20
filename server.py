@@ -30,17 +30,21 @@ class Server:
             print ('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
             sys.exit()
 
+    def generate_random_color(self):
+         r = lambda: random.randint(0,255)
+         return str('#%02X%02X%02X' % (r(),r(),r()))
+            
     def add_connection(self, data, addr):
         username = data[1]
         if not (addr[0], addr[1]) in self.clients and not username in self.usernames and not username == "":
             self.clients.append((addr[0], addr[1]))
             self.usernames.append(username)
-            
-            # generate random color for user
-            r = lambda: random.randint(0,255)
-            random_color = str('#%02X%02X%02X' % (r(),r(),r()))
-            join_message = ["join", "User " + username + " has joined the canvas with color: " + random_color + "\n",
+            # generate random color for user & send back confirmation
+            random_color = self.generate_random_color()
+            join_message = ["join_chat",
+                            "User " + username + " has joined the canvas with color: " + random_color + "\n",
                             "server", random_color, username]
+            self.send_data(join_message, addr[0], addr[1])
             return join_message
         else:
             # send error message to client, username may be taken
@@ -53,27 +57,26 @@ class Server:
             # Receive data from client
             data, addr = self.udp_socket.recvfrom(size)
             client_data = pickle.loads(data)
+            print(client_data)
 
             # check if this client is trying to be added to our client list
             if client_data[0] == "username":
-                # start_new_thread(self.add_username, (client_data, addr,))
                 join_message = self.add_connection(client_data, addr)
                 if join_message:
-                    self.chat_history.append(["joing_chat", join_message[1]])
-                    print(join_message[1]) # logging new client connected
-                    self.send_data(join_message, addr[0], addr[1])
-
-                    # send paint & chat history if there are older clients
-                    if len(self.clients) > 1:
-                        self.send_paint_history(addr[0], addr[1])
-                        self.send_chat_history(addr[0], addr[1])
+                    for host, port in self.clients:
+                        if not (host, port) == (addr[0], addr[1]):
+                            self.send_data(join_message, host, port)
+                    self.chat_history.append(["join_chat", join_message[1], join_message[4]])
+                  
+                # send paint & chat history if there are older clients
+                if len(self.clients) > 1:
+                    self.send_paint_history(addr[0], addr[1])
+                    start_new_thread(self.send_chat_history, (addr[0], addr[1],))
                     
             else:
-                print(client_data)
+                self.history.append(client_data)
                 # broadcast data out to all clients
-                for host, port in self.clients:
-                    # used for logging information
-                    self.history.append(client_data)
+                for host, port in self.clients:                 
                     if not (host, port) == (addr[0], addr[1]):
                         start_new_thread(self.send_data, (client_data, host, port,))
 
@@ -82,9 +85,12 @@ class Server:
         self.udp_socket.sendto(data, (host, port))
 
     def send_paint_history(self, host, port, size=4096):
+        i = 0
         for history in self.history:
+            print(str(i) + ": " + "sending: " + str(history))
             data = pickle.dumps(history)
             self.udp_socket.sendto(data, (host, port))
+            i = i + 1
 
     def send_chat_history(self, host, port, size=4096):
         for chats in self.chat_history:

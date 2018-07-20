@@ -61,10 +61,8 @@ class Paint(object):
         # Text Dialog Box, will display users' messages
         self.text_box = Text(self.root, state='disabled', height=40, width=65)
         self.text_box.grid(row=0, column=10)
-        self.text_box.configure(state='normal')
-        self.text_box.insert(END, self.join_message)
-        self.text_box.configure(state='disabled')
-
+        self.write_to_text_box(self.join_message)
+        
         # User chat entry box
         self.send_box = Entry(self.root)
         self.send_box.grid(row=100, column=10)
@@ -80,9 +78,10 @@ class Paint(object):
         self.setup()
         
         # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!          
-        start_new_thread(self.receive_data, ())
-        start_new_thread(self.receive_data, ())
-        start_new_thread(self.receive_data, ())
+        start_new_thread(self.receive_paint_data, ())
+        start_new_thread(self.receive_paint_data, ())
+        start_new_thread(self.receive_paint_data, ())
+        start_new_thread(self.receive_paint_data, ())
         self.root.mainloop()
 
     def setup(self):
@@ -143,7 +142,7 @@ class Paint(object):
                     self.popup_msg("That username is already taken or is invalid, please enter a new username")
                     break
                 
-                elif color_data[0] == "join":
+                elif color_data[0] == "join_chat":
                     self.color = color_data[3]
                     self.username = color_data[4]
                     self.join_message = color_data[1]
@@ -185,10 +184,16 @@ class Paint(object):
 
     def send_chat(self):
         text = self.send_box.get()
+        self.write_to_text_box(self.username + ": " + text + "\n")
         text_data = ["chat", text, self.username]
         self.client.send_data(text_data)
         self.send_box.delete(0, 'end')
-        
+
+    def write_to_text_box(self, text):
+        self.text_box.configure(state='normal')
+        self.text_box.insert(END, text)
+        self.text_box.configure(state='disabled')
+
     # not using this function because server chooses random color for user    
     # def choose_color(self):
     #     self.eraser_on = False
@@ -273,11 +278,10 @@ class Paint(object):
     def reset(self, event):
         self.old_x, self.old_y = None, None
         
-    def receive_data(self):
+    def receive_paint_data(self):
         while True:
             paint_color = 'white' if self.eraser_on else self.color
             data = self.client.receive_data()
-            print(data)
             if data[0] == 'paint':
                 self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
                                    capstyle=ROUND, smooth=TRUE, splinesteps=36)
@@ -291,11 +295,8 @@ class Paint(object):
                 self.setup()
             elif data[0] == 'chat':
                 text = str(data[2] + ": " + data[1] + "\n")
-                self.text_box.configure(state='normal')
-                self.text_box.insert(END, text)
-                self.text_box.configure(state='disabled')
+                self.write_to_text_box(text)
             elif data[0] == 'join_chat':
-                self.text_box.configure(state='normal')
-                self.text_box.insert(END, data[1])
-                self.text_box.configure(state='disabled')
- 
+                if not data[2] == self.username:
+                    text = data[1]
+                    self.write_to_text_box(text)
