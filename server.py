@@ -1,7 +1,8 @@
 import socket
 import sys
-import pickle
+import json
 import random
+import time
 from _thread import *
 from multiprocessing import Process, Lock
 
@@ -9,13 +10,11 @@ class Server:
     def __init__(self):
         self.HOST = 'localhost'
         self.UDP_PORT = 10000
-        self.TCP_PORT = 10001
         self.udp_socket = None
-        self.tcp_socket = None
         self.clients = []
         self.usernames = []
         self.mutex = Lock()
-        self.history = []
+        self.paint_history = []
         self.chat_history = []
         
     def disconnect(self):
@@ -24,12 +23,9 @@ class Server:
     def bind(self):
         # UDP socket for sending/receiving drawing data
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Bind socket to local host and port, print if fails
         try:
             self.udp_socket.bind((self.HOST, self.UDP_PORT))
-            self.tcp_socket.bind((self.HOST, self.TCP_PORT))
-            self.tcp_socket.listen()
         except socket.error as msg:
             print ('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
             sys.exit()
@@ -54,53 +50,34 @@ class Server:
             # send error message to client, username may be taken
             self.send_data(["ERROR"], addr[0], addr[1])
             return None
-     
                         
     def accept_data(self, size=4096):
         while True:             
             # Receive data from client
             data, addr = self.udp_socket.recvfrom(size)
-            client_data = pickle.loads(data)
+            client_data = json.loads(data)
             print(client_data)
-
             # check if this client is trying to be added to our client list
-            if client_data[0] == "username":
+            if client_data[0] == "username":                
                 join_message = self.add_connection(client_data, addr)
-                conn, addr = self.tcp_socket.accept()
-                if len(self.clients) > 1:
-                    start_new_thread(self.send_paint_history, (conn,))
-                if join_message:
+                if join_message:                
+                    self.chat_history.append(["join_chat", join_message[1], join_message[4]])
                     for host, port in self.clients:
                         if not (host, port) == (addr[0], addr[1]):
-                            self.send_data(join_message, host, port)
-                    self.chat_history.append(["join_chat", join_message[1], join_message[4]])
-                  
-                    # send paint & chat history if there are older clients              
-                    # self.send_paint_history(addr[0], addr[1])
-                    # start_new_thread(self.send_chat_history, (addr[0], addr[1],))
-                    
+                            start_new_thread(self.send_data, (join_message, host, port,))
             else:
-                self.history.append(client_data)
+                self.paint_history.append(client_data)
                 # broadcast data out to all clients
                 for host, port in self.clients:                 
                     if not (host, port) == (addr[0], addr[1]):
-                        start_new_thread(self.send_data, (client_data, host, port,))
+                        self.send_data(client_data, host, port)
 
-    def send_data(self, data, host, port, size=4096):
-        data = pickle.dumps(data)
-        self.udp_socket.sendto(data, (host, port))
-
-    def send_paint_history(self, conn, size=4096):
-        for history in self.history:
-            data = pickle.dumps(history)
-            conn.send(data)
-
-    def send_chat_history(self, host, port, size=4096):
-        for chats in self.chat_history:
-            data = pickle.dumps(chats)
-            self.udp_socket.sendto(data, (host, port))
+    def send_data(self, data, host, port):
+        self.udp_socket.sendto(json.dumps(data).encode(), (host, port))
 
 if __name__ == '__main__':
     server = Server()
     server.bind()
     server.accept_data()
+
+  

@@ -78,8 +78,7 @@ class Paint(object):
         self.setup()
         
         # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!          
-        start_new_thread(self.receive_paint_data, ())
-        start_new_thread(self.receive_history, ())
+        start_new_thread(self.receive_paint_data, ())        
         self.root.mainloop()
 
     def setup(self):
@@ -279,46 +278,25 @@ class Paint(object):
     def receive_paint_data(self):
         while True:
             paint_color = 'white' if self.eraser_on else self.color
-            data = self.client.receive_data()
-            if data[0] == 'paint':
-                self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
-                                   capstyle=ROUND, smooth=TRUE, splinesteps=36)
-            elif data[0] == 'draw_rectangle':
-                self.c.create_rectangle(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
-            elif data[0] == 'draw_circle':
-                self.c.create_oval(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
-            elif data[0] == 'wipe_canvas':
-                self.c = Canvas(self.root, bg='white', width=600, height=600)
-                self.c.grid(row=0, columnspan=10)
-                self.setup()
-            elif data[0] == 'chat':
-                text = str(data[2] + ": " + data[1] + "\n")
-                self.write_to_text_box(text)
-            elif data[0] == 'join_chat':
-                if not data[2] == self.username:
-                    text = data[1]
-                    self.write_to_text_box(text)
+            data = self.client.receive_data()        
+            self.data_handler(data)
 
-    def receive_history(self):
-        while True:
-            paint_color = 'white' if self.eraser_on else self.color
-            data = self.client.receive_tcp_data()
-            if data[0] == 'paint':
-                self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
-                                   capstyle=ROUND, smooth=TRUE, splinesteps=36)
-            elif data[0] == 'draw_rectangle':
-                self.c.create_rectangle(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
-            elif data[0] == 'draw_circle':
-                self.c.create_oval(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
-            elif data[0] == 'wipe_canvas':
-                self.c = Canvas(self.root, bg='white', width=600, height=600)
-                self.c.grid(row=0, columnspan=10)
-                self.setup()
-            elif data[0] == 'chat':
-                text = str(data[2] + ": " + data[1] + "\n")
+    def data_handler(self, data):
+        if data[0] == 'paint':
+            self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
+                               capstyle=ROUND, smooth=TRUE, splinesteps=36)
+        elif data[0] == 'draw_rectangle':
+            self.c.create_rectangle(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
+        elif data[0] == 'draw_circle':
+            self.c.create_oval(data[1], data[2], data[3], data[4], outline=data[5], width=data[6])
+        elif data[0] == 'wipe_canvas':
+            self.c = Canvas(self.root, bg='white', width=600, height=600)
+            self.c.grid(row=0, columnspan=10)
+            self.setup()
+        elif data[0] == 'chat':
+            text = str(data[2] + ": " + data[1] + "\n")
+            self.write_to_text_box(text)
+        elif data[0] == 'join_chat':
+            if not data[2] == self.username:
+                text = data[1]
                 self.write_to_text_box(text)
-            elif data[0] == 'join_chat':
-                if not data[2] == self.username:
-                    text = data[1]
-                    self.write_to_text_box(text)
-            

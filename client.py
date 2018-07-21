@@ -1,25 +1,20 @@
 import socket
 import sys
 import paint
-import pickle
+import json
 
 class Client:
     def __init__(self):
         self.udp_socket = None
-        self.host = None
-        self.port = None
+        self.HOST = "localhost"
+        self.PORT = 10000
         self.isClientConnected = False
         
-    def connect(self, host, port):
-        self.host = host
-        self.port = port
+    def connect(self):
         try:
             # UDP socket for sending/receiving drawing data
             self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)            
-            self.udp_socket.connect((host, port))
-
-            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_socket.connect((host, port+1))
+            self.udp_socket.connect((self.HOST, self.PORT))
             self.isClientConnected = True
             
         except socket.error as errorMessage:
@@ -27,45 +22,29 @@ class Client:
                 sys.stderr.write('Connection refused to {0} on port {1}'.format(host, port))
             else:
                 sys.stderr.write('Error, unable to connect: {0}'.format(errorMessage))
-
+                
     def disconnect(self):
         if self.isClientConnected:
             self.udp_socket.close()
             self.isClientConnected = False
 
     def send_data(self, data):
-        if self.isClientConnected:            
-            list_data = pickle.dumps(data)
-            self.udp_socket.sendto(list_data, (self.host,self.port))
+        if self.isClientConnected:
+            self.udp_socket.sendto(json.dumps(data).encode(), (self.HOST, self.PORT))
 
-    def receive_data(self, size=4096):
+    def receive_data(self, size=1073741824):
         if not self.isClientConnected:
             return ""
         else:
             while True:
                data, addr = self.udp_socket.recvfrom(size)
-               list_data = pickle.loads(data)
+               list_data = json.loads(data)
                if list_data:
-                   print(list_data)
                    return list_data
                else:
                    return ""
-               
-    def receive_tcp_data(self, size=4096):
-        if not self.isClientConnected:
-            return ""
-        else:
-            data = self.tcp_socket.recv(size)
-            print(data)
-            if data:
-                list_data = pickle.loads(data)
-                if list_data:
-                    print(list_data)
-                    return list_data
-                else:
-                    return ""
 
 if __name__ == '__main__':
     client = Client()
-    client.connect('127.0.0.1', 10000)
+    client.connect()
     paint = paint.Paint(client)
