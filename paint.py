@@ -23,7 +23,7 @@ class Paint(object):
         self.root.wm_title("Paint with Friends")
 
         # Brush Button
-        brush_image = ImageTk.PhotoImage(file="brush.png")
+        brush_image = ImageTk.PhotoImage(file="assets/brush.png")
         self.brush_button = Button(self.root, image=brush_image, command=self.use_brush)
         self.brush_button.grid(row=100, column=1)
 
@@ -32,7 +32,6 @@ class Paint(object):
         self.circle_button.grid(row=100, column=6)
 
         # Rectangle Button
-        # rectangle_image = ImageTk.PhotoImage(file="rectangle.png")
         self.rectangle_button = Button(self.root, text="Rectangle", command=self.use_rectangle)
         self.rectangle_button.grid(row=100, column=7)
    
@@ -42,7 +41,7 @@ class Paint(object):
         # self.color_button.grid(row=100, column=2)
 
         # Eraser Button
-        eraser_image = ImageTk.PhotoImage(file="eraser.png")
+        eraser_image = ImageTk.PhotoImage(file="assets/eraser.png")
         self.eraser_button = Button(self.root, image=eraser_image, command=self.use_eraser)
         self.eraser_button.grid(row=100, column=3)
 
@@ -222,11 +221,8 @@ class Paint(object):
         self.line_width = self.choose_size_button.get()
         paint_color = 'white' if self.eraser_on else self.color
         if self.x and self.y:
-            # send data to server
             data = ["paint", self.x, self.y, event.x, event.y, paint_color, self.line_width]
             self.client.send_data(data)
-
-            # paint on canvas
             self.c.create_line(data[1], data[2], data[3], data[4],
                                width=self.line_width, fill=paint_color,
                             capstyle=ROUND, smooth=TRUE, splinesteps=36)
@@ -242,11 +238,9 @@ class Paint(object):
         self.old_x, self.old_y = (self.x, self.y)
         self.x, self.y = (event.x, event.y)
 
-        # send data to server
         data = ["draw_circle", self.old_x, self.old_y, self.x, self.y, paint_color, self.line_width]
         self.client.send_data(data)
 
-        # paint on canvas
         if self.old_x and self.old_y:
             self.c.create_oval(self.old_x, self.old_y, self.x, self.y, outline=paint_color,
                                width=self.line_width)
@@ -262,7 +256,6 @@ class Paint(object):
         self.old_x, self.old_y = (self.x, self.y)
         self.x, self.y = (event.x, event.y)
 
-        # send data to server
         data = ["draw_rectangle", self.old_x, self.old_y, self.x, self.y, paint_color, self.line_width]
         self.client.send_data(data)
 
