@@ -187,9 +187,10 @@ class Paint(object):
 
     def send_chat(self):
         text = self.send_box.get()
-        text_data = ["chat", text, self.username]
-        self.client.send_data(text_data)
-        self.send_box.delete(0, 'end')
+        if text:
+            text_data = ["chat", text, self.username]
+            self.client.send_data(text_data)
+            self.send_box.delete(0, 'end')
 
     def write_to_text_box(self, text):
         self.text_box.configure(state='normal')
