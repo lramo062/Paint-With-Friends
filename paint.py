@@ -18,6 +18,7 @@ class Paint(object):
         self.client = client
         self.popup_msg("Please enter your username")
         self.root = Tk()
+        self.history = None
     
         # Window Title
         self.root.wm_title("Paint with Friends")
@@ -75,9 +76,14 @@ class Paint(object):
         self.scroll.grid(row=0, column=12)
 
         self.setup()
-        
-        # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!          
-        start_new_thread(self.receive_paint_data, ())        
+
+        # handle historic draw/chat data to sync multiple clients
+        if self.client.history:
+            for x in self.client.history:
+                self.handler(x)
+                
+        # START NEW THREAD THAT IS CONSTANTLY LISTENING FOR DATA!!!!
+        start_new_thread(self.receive_paint_data, ())       
         self.root.mainloop()
 
     def setup(self):
@@ -144,7 +150,8 @@ class Paint(object):
                     self.join_message = color_data[1]
                     self.popup.destroy()
                     break                
-        except:
+        except Exception as e:
+            print(e)
             # destroy previous popup prompting for username
             self.popup.destroy()
             self.popup_error_msg("Connection to server is not established, please make sure server is running")
@@ -180,7 +187,6 @@ class Paint(object):
 
     def send_chat(self):
         text = self.send_box.get()
-        self.write_to_text_box(self.username + ": " + text + "\n")
         text_data = ["chat", text, self.username]
         self.client.send_data(text_data)
         self.send_box.delete(0, 'end')
@@ -271,10 +277,11 @@ class Paint(object):
     def receive_paint_data(self):
         while True:
             paint_color = 'white' if self.eraser_on else self.color
-            data = self.client.receive_data()        
-            self.data_handler(data)
-
-    def data_handler(self, data):
+            data = self.client.receive_data()
+            if data:
+                self.handler(data)
+                
+    def handler(self, data):
         if data[0] == 'paint':
             self.c.create_line(data[1], data[2], data[3], data[4], fill=data[5], width=data[6],
                                capstyle=ROUND, smooth=TRUE, splinesteps=36)
