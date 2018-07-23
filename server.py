@@ -3,7 +3,6 @@ import sys
 import json
 import random
 from _thread import *
-from multiprocessing import Process, Lock
 
 class Server:
     def __init__(self):
@@ -11,13 +10,10 @@ class Server:
         self.UDP_PORT = 4000
         self.TCP_PORT = 4001
         self.udp_socket = None
+        self.tcp_socket = None
         self.clients = []
         self.usernames = []
-        self.mutex = Lock()
         self.history = []
-
-    def disconnect(self):
-        self.socket.close()
     
     def bind(self):
         # UDP/TCP socket for sending/receiving drawing data/ history

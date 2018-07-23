@@ -6,6 +6,7 @@ import json
 class Client:
     def __init__(self):
         self.udp_socket = None
+        self.tcp_socket = None
         self.HOST = "localhost"
         self.PORT = 4000
         self.TCP_PORT = 4001
