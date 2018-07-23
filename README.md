@@ -19,8 +19,10 @@ The Final Project Report is located under the assets folder.
 ## Dependencies
 
 * Python 3.6.6
-* Tkinter: installation instructions here: (https://tkdocs.com/tutorial/install.html)
-* TkImage: installation instructions here: (https://pillow.readthedocs.io/en/latest/installation.html#basic-installation)
+* Tkinter
+** installation instructions here: (https://tkdocs.com/tutorial/install.html)
+* TkImage
+** installation instructions here: (https://pillow.readthedocs.io/en/latest/installation.html#basic-installation)
 * socket
 * sys
 * json
