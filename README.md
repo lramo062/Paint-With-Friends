@@ -1,5 +1,4 @@
 # Paint With Friends
-
 A fun multiplayer paint application!
 
 ## About
@@ -20,8 +19,8 @@ The Final Project Report is located under the assets folder.
 ## Dependencies
 
 * Python 3.6.6
-* Tkinter
-* TkImage
+* Tkinter: installation instructions here: (https://tkdocs.com/tutorial/install.html)
+* TkImage: installation instructions here: (https://pillow.readthedocs.io/en/latest/installation.html#basic-installation)
 * socket
 * sys
 * json
@@ -41,7 +40,7 @@ The Final Project Report is located under the assets folder.
 
 ## Authors
 
-* **Lester Ramos** - *Initial work* - [lramo062](https://github.com/lramo062)
+* **Lester Ramos**
 
 ## License
 
