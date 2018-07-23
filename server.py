@@ -3,7 +3,6 @@ import sys
 import json
 import random
 from _thread import *
-from multiprocessing import Process, Lock
 
 class Server:
     def __init__(self):
@@ -13,7 +12,6 @@ class Server:
         self.udp_socket = None
         self.clients = []
         self.usernames = []
-        self.mutex = Lock()
         self.history = []
 
     def disconnect(self):
@@ -90,5 +88,3 @@ if __name__ == '__main__':
     server.bind()
     start_new_thread(server.accept_tcp_connection, ())
     server.accept_data()
-
-  

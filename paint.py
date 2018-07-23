@@ -1,5 +1,4 @@
 from _thread import *
-from multiprocessing import Process, Lock
 from tkinter import *
 from tkinter.colorchooser import askcolor
 from tkinter import messagebox
