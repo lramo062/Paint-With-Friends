@@ -86,5 +86,3 @@ if __name__ == '__main__':
     server.bind()
     start_new_thread(server.accept_tcp_connection, ())
     server.accept_data()
-
-  
