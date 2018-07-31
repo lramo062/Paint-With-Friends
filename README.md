@@ -10,11 +10,6 @@ to make the drawing entertaining.
 ![Alt text](https://github.com/lramo062/paint-with-friends/blob/master/assets/username_prompt.png)
 ![Alt text](https://github.com/lramo062/paint-with-friends/blob/master/assets/drawing1.png "Here's a screen shot:")
 
-## Video Link
-(https://youtu.be/ETV-nAcejVQ)
-
-## Report
-The Final Project Report is located under the assets folder.
 
 ## Dependencies
 
